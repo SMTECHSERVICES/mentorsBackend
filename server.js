@@ -18,15 +18,7 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = ['http://localhost:5173', 'http://localhost:4173','https://www.mentors.ind.in'];
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g., mobile apps, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`CORS Blocked: ${origin} | Allowed: ${allowedOrigins}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: ['http://localhost:5173', 'http://localhost:4173','https://www.mentors.ind.in'],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true
 };
