@@ -15,10 +15,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:4173','https://www.mentors.ind.in'];
+ const allowedOrigins = ['http://localhost:5173', 'http://localhost:4173','https://www.mentors.ind.in'];
 
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:4173','https://www.mentors.ind.in'],
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true
 };
