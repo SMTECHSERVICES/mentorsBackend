@@ -70,7 +70,6 @@ console.log("Cloudinary ENV:", {
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
-        domain:'https://www.mentors.ind.in',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -123,7 +122,6 @@ router.post('/login',async(req,res)=>{
            secure: process.env.NODE_ENV === "production",
            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
            path: "/",
-           domain:'https://www.mentors.ind.in',
            maxAge: 7 * 24 * 60 * 60 * 1000,
          });
    
