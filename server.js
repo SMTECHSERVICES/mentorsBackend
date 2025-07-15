@@ -47,6 +47,9 @@ app.use('/api/mentor', mentorRoutes);
  app.use('/api/mentee', menteeRoutes);
  app.use('/api/admin',adminRoutes);
 
+ app.get('/',(req,res)=>{
+  res.json('sab janga si ')
+ })
 
 // Import and use routes here (contact route will come next)
 
