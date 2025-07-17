@@ -39,7 +39,10 @@ router.post('/uploadCourse', upload.single('thumbnail'), async (req, res) => {
 
 router.get("/getCourses",async(req,res)=>{
     try {
-        const serviceData = await Course.find().select("-tumbnailPublicId");
+        const serviceData = await Course.find().populate({
+          path:'availableMentors',
+          select:'-password -interestedMentees '
+        })
 
         return res.status(200).json(
             serviceData
@@ -50,6 +53,15 @@ router.get("/getCourses",async(req,res)=>{
             message:'Internal server error'
         })
     }
+});
+
+router.get('/getCourse/mentors/:id',async(req,res)=>{
+  const courseId = req.params.id;
+  try {
+    
+  } catch (error) {
+    
+  }
 })
 
 

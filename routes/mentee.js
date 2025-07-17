@@ -3,6 +3,8 @@ import upload from '../middleware/multer.js'
 import Mentee from '../models/mentee.js';
 import uploadFileOnCloudinary from '../utils/uploadFilesOnCloudinary.js';
 import jwt from 'jsonwebtoken'
+import { protectMenteeRoute } from '../middleware/mentee.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -136,6 +138,28 @@ router.post('/login',async(req,res)=>{
     console.log(error);
     return res.status(500).json({
       message:'internal server error'
+    })
+  }
+});
+
+
+
+router.use(protectMenteeRoute)
+
+router.get('/getDashboardData',async(req,res)=>{
+  try {
+    //console.log(req.user)
+    const mentee = await req.user.populate({
+      path:'yourMentors',
+      select:"-password -interestedMentees"
+    })
+    return res.status(200).json({
+      mentee
+    })
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message:'Internal server error'
     })
   }
 })
