@@ -99,7 +99,7 @@ router.post('/login',async(req,res)=>{
     const isMentee = await Mentee.findOne({
       email:email
     });
-    if(!isMentor){
+    if(!isMentee){
       return res.status(400).json({
         message:'Invalid email'
       })

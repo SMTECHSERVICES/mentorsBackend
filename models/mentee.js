@@ -62,6 +62,13 @@ const menteeSchema = new mongoose.Schema({
     type:String,
     select:false
   },
+  yourMentors:[
+    {
+      type:mongoose.Types.ObjectId,
+      ref:'Mentor'
+    }
+
+  ],
   role:{
     type:String,
     default:'mentee'

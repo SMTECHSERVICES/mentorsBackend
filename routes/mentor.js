@@ -5,6 +5,9 @@ import uploadFileOnCloudinary from '../utils/uploadFilesOnCloudinary.js';
 import uploadOnCloudinaryBuffer from '../utils/uploadImageOnCloudinary.js';
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs';
+import { protectMentorMiddleware } from '../middleware/mentor.js';
+import Course from '../models/course.js'
+import { cloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
 
@@ -25,7 +28,7 @@ router.post('/register',upload.fields([
       mentorshipInterests,
     } = req.body;
 
-    console.log(req.body)
+    //console.log(req.body)
 
  
 
@@ -73,11 +76,23 @@ router.post('/register',upload.fields([
       resume: resumeUrl,
       resumePublicId:resumePublicId,
       profilePicture:profilePicUrl,
-      profilePicPublicId:profilePicPublicId
+      profilePicPublicId:profilePicPublicId,
+      interestedMentees:[]
     });
 
     await mentor.save();
-    console.log(mentor)
+
+  if (Array.isArray(mentorshipInterests)) {
+        for (const title of mentorshipInterests) {
+          const course = await Course.findOne({ title: title.trim() });
+          if (course) {
+            if (!course.availableMentors.includes(mentor._id)) {
+              course.availableMentors.push(mentor._id);
+              await course.save();
+            }
+          }
+        }
+      }
 
    const token = jwt.sign(
            { id: mentor._id, role: mentor.role },
@@ -116,24 +131,24 @@ router.post('/login',async(req,res)=>{
       })
     }
 
-    console.log(email,password)
+    //console.log(email,password)
 
     const isMentor = await Mentor.findOne({
       email:email
     });
-    console.log(isMentor)
+    //console.log(isMentor)
     if(!isMentor){
       return res.status(400).json({
         message:'Invalid email'
       })
     }
-    const isMatch = await bcrypt.compare(password,isMentor.password);
+    const isMatch =  bcrypt.compare(password,isMentor.password);
     if(!isMatch){
       return res.status(400).json({
         message:'invalid password'
       })
     }
-    console.log(isMatch)
+    //console.log(isMatch)
 
     const token = jwt.sign(
            { id: isMentor._id, role: isMentor.role },
@@ -163,7 +178,119 @@ router.post('/login',async(req,res)=>{
   res.status(500).json({ message: "Server error" });
 
   }
-})
+});
+
+
+router.use(protectMentorMiddleware);
+
+
+router.get("/dashboardData", async (req, res) => {
+  try {
+    const mentor = await req.user.populate({
+      path: "interestedMentees",
+      select: "-password -resumePublicId -profilePicPublicId -yourMentors"  // exclude sensitive fields
+    });
+
+    res.status(200).json({ mentor });
+  } catch (error) {
+    console.error("Dashboard Error:", error);
+    res.status(500).json({ message: "Failed to load dashboard data" });
+  }
+});
+
+
+router.put(
+  "/update-profile",
+  upload.fields([
+    { name: "resume", maxCount: 1 },
+    { name: "profilePicture", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      currentJob,
+      description,
+      mentorshipInterests
+    } = req.body;
+     
+
+    try {
+      const resumeFile = req.files?.resume?.[0];
+      const profilePicFile = req.files?.profilePicture?.[0];
+
+      let profilePicUrl = req.user.profilePicture;
+      let profilePicPublicId = req.user.profilePicPublicId;
+      let resumeUrl = req.user.resume;
+      let resumePublicId = req.user.resumePublicId;
+
+      // ✅ Handle resume file upload (PDF)
+      if (resumeFile?.buffer) {
+        // Delete old resume
+        if (resumePublicId) {
+          await cloudinary.uploader.destroy(resumePublicId, {
+            resource_type: "raw",
+          });
+        }
+        const resumeUpload = await uploadFileOnCloudinary(
+          resumeFile.buffer,
+          resumeFile.originalname
+        );
+        resumeUrl = resumeUpload.secure_url;
+        resumePublicId = resumeUpload.public_id;
+      }
+
+      // ✅ Handle profile image upload
+      if (profilePicFile?.buffer) {
+        if (profilePicPublicId) {
+          await cloudinary.uploader.destroy(profilePicPublicId);
+        }
+
+        const profileUpload = await uploadOnCloudinaryBuffer(profilePicFile.buffer);
+
+        if (typeof profileUpload === "string") {
+          profilePicUrl = profileUpload;
+        } else {
+          profilePicUrl = profileUpload.secure_url || "";
+          profilePicPublicId = profileUpload.public_id || "";
+        }
+      }
+
+      const updatedMentor = await Mentor.findByIdAndUpdate(
+        req.user._id,
+        {
+          $set: {
+            fullName,
+            email,
+            phoneNumber,
+            currentJob,
+            description,
+            areaofMentorship:mentorshipInterests,
+            profilePicture: profilePicUrl,
+            profilePicPublicId,
+            resume: resumeUrl,
+            resumePublicId,
+          },
+        },
+        { new: true }
+      );
+  
+      res.status(200).json({
+        message: "✅ Profile updated successfully!",
+        mentor: {
+          fullName: updatedMentor.fullName,
+          email: updatedMentor.email,
+          profilePicture: updatedMentor.profilePicture,
+          resume: updatedMentor.resume,
+        },
+      });
+    } catch (error) {
+      console.error("Update Profile Error:", error);
+      res.status(500).json({ message: "❌ Failed to update profile.", error });
+    }
+  }
+);
 
 
  

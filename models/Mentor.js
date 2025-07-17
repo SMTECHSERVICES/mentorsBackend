@@ -70,7 +70,13 @@ const mentorSchema = new mongoose.Schema({
     role:{
     type:String,
     default:'mentor'
-  }
+  },
+  interestedMentees:[
+    {
+      type:mongoose.Types.ObjectId,
+      ref:'Mentee'
+    }
+  ]
 
 }, {
   timestamps: true // Adds createdAt and updatedAt fields

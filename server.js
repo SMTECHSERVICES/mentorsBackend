@@ -6,7 +6,8 @@ import cookieParser from 'cookie-parser';
 // import contactRoutes from './routes/contact.js';
 import mentorRoutes from './routes/mentor.js'
 import menteeRoutes from './routes/mentee.js'
-import adminRoutes from './routes/admin.js'
+import adminRoutes from './routes/admin.js';
+import courseRoutes from './routes/course.js'
 
 
 dotenv.config();
@@ -45,6 +46,7 @@ async function main() {
 //app.use('/api/contact', contactRoutes);
 app.use('/api/mentor', mentorRoutes);
  app.use('/api/mentee', menteeRoutes);
+ app.use("/api/course",courseRoutes)
  app.use('/api/admin',adminRoutes);
 
  app.get('/',(req,res)=>{
