@@ -275,6 +275,18 @@ router.put(
         },
         { new: true }
       );
+
+      if (Array.isArray(mentorshipInterests)) {
+        for (const title of mentorshipInterests) {
+          const course = await Course.findOne({ title: title.trim() });
+          if (course) {
+            if (!course.availableMentors.includes(updatedMentor._id)) {
+              course.availableMentors.push(updatedMentor._id);
+              await course.save();
+            }
+          }
+        }
+      }
   
       res.status(200).json({
         message: "✅ Profile updated successfully!",
