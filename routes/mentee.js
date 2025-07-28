@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import { protectMenteeRoute } from '../middleware/mentee.js';
 import bcrypt from 'bcryptjs';
 import Mentor from '../models/Mentor.js';
+import Event from '../models/event.js';
 
 const router = express.Router();
 
@@ -151,9 +152,130 @@ router.post('/login',async(req,res)=>{
   }
 });
 
+router.get('/current-events',async(req,res)=>{
+  const page = parseInt(req.query.page || 1);
+  const limit = parseInt(req.query.limit || 2);
+  const skip = (page - 1) * limit;
+  
+
+
+
+  try {
+    const totalNumberOfEvents = await Event.countDocuments({isPublish:true});
+    let events;
+  
+ 
+       
+      events = await Event.find({isPublish:true}).skip(skip).limit(limit);
+ 
+
+    return res.status(200).json({
+      totalNumberOfEvents,
+      totalPage : Math.ceil(totalNumberOfEvents/limit),
+      currentPage:page,
+      events
+    })
+  } catch (error) {
+    console.log("Error in get event route",error);
+    return res.status(500).json({
+      message:'Internal server error'
+    })
+  }
+})
+
+router.get('/past-events',async(req,res)=>{
+
+  
+  try {
+    const totalNumberOfEvents = await Event.countDocuments();
+    let events;
+  
+ 
+       
+      events = await Event.find({isPublish:false})
+ 
+
+    return res.status(200).json({
+      events
+    })
+  } catch (error) {
+    console.log("Error in get event route",error);
+    return res.status(500).json({
+      message:'Internal server error'
+    })
+  }
+})
+
 
 
 router.use(protectMenteeRoute)
+
+router.post('/event-register/:id', async (req, res) => {
+  const eventId = req.params.id;
+
+  try {
+    const event = await Event.findById(eventId);
+    if (!event || !event.isPublish) {
+      return res.status(404).json({
+        message: 'Event does not exist or is not published'
+      });
+    }
+
+    // Prevent duplicate registration
+    const alreadyRegistered = event.registredStudent.some(
+      (studentId) => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!alreadyRegistered) {
+      event.registredStudent.push(req.user._id);
+      await event.save();
+    }
+
+    // Web3Forms integration
+    const web3Res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_key: process.env.WEB3FORMS_KEY,
+        subject: `New Registration for ${event.title}`,
+        name: req.user.fullName,
+        email: req.user.email,
+        message: `
+        A new event registration has been submitted.
+
+        👨‍🎓 Student Name: ${req.user.fullName}
+        📧 Student Email: ${req.user.email}
+        📞 Student Phone: ${req.user.phoneNumber}
+
+        🧑‍🏫 Event Name: ${event.title}
+        🗓️ Event Date: ${event.seminarDate.toDateString()}
+        📍 Event Venue: ${event.where}
+        `
+      }),
+    });
+
+    const web3Data = await web3Res.json();
+
+    if (!web3Data.success) {
+      console.error('Web3Forms Error:', web3Data);
+      return res.status(500).json({
+        message: 'Web3Forms submission failed',
+        detail: web3Data.message
+      });
+    }
+
+    return res.status(201).json({
+      message: 'You are successfully registered for the event'
+    });
+
+  } catch (error) {
+    console.error('Error in event registration:', error);
+    return res.status(500).json({
+      message: 'Internal server error'
+    });
+  }
+});
+
 
 router.get('/getDashboardData',async(req,res)=>{
   try {

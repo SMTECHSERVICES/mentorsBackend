@@ -17,6 +17,17 @@ const eventSchema = new mongoose.Schema({
         type:String,
         required:true
     },
+    seminarDate:{
+        type:Date,
+        required:true
+    },
+    where:{
+        type:String,
+         required: true
+    },
+    timing:{
+        type:String
+    },
     isPublish:{
         type:Boolean,
         default:false

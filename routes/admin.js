@@ -60,9 +60,38 @@ router.get('/getAllMentees',async(req,res)=>{
     }
 });
 
-router.get('/getMentee-detail/:id',async(req,res)=>{
-  
-})
+router.get('/getMentee-detail/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const mentee = await Mentee.findById(id)
+      .populate({
+        path: "yourMentors",
+        select: "_id fullName email phoneNumber"
+      });
+
+    if (!mentee) {
+      return res.status(404).json({
+        message: "Student not found"
+      });
+    }
+
+    const events = await Event.find({
+      registredStudent: { $in: [mentee._id] }
+    }).select("_id title seminarDate where"); // Optional: choose fields to return
+
+    return res.status(200).json({
+      mentee,
+      registeredEvents: events
+    });
+
+  } catch (error) {
+    console.error("Error in getMentee-detail:", error);
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+  }
+});
+
 
 router.get('/getAllMentors',async(req,res)=>{
     try {
@@ -260,48 +289,106 @@ router.get('/events',async(req,res)=>{
   }
 })
 
-router.post('/addNewEvent',upload.single("thumbnail"),async(req,res)=>{
-  const {title,description,isPublish} = req.body;
+router.post('/addNewEvent', upload.single("thumbnail"), async (req, res) => {
+  const { title, description, isPublish, where, seminarDate, timing } = req.body;
+
   try {
-    if(!title || !description){
-      return res.status(404).json({
-        message:'Please give the title and description'
-      })
+    if (!title || !description || !seminarDate || !where) {
+      return res.status(400).json({
+        message: 'Title, description, seminar date, and location are required.',
+      });
     }
-     const thumbnailBuffer = req.file?.buffer;
-     // console.log(resumeBuffer)
+
+    const thumbnailBuffer = req.file?.buffer;
     let thumbnailUrl = "";
     let thumbnailUrlPublicId = "";
 
-         if (thumbnailBuffer) {
-      const logoUploadResult = await uploadOnCloudinaryBuffer(thumbnailBuffer);
-      // Assuming uploadOnCloudinaryBuffer returns an object with url and public_id
-      // If it returns just URL, adjust accordingly
-      if (typeof logoUploadResult === 'string') {
-        thumbnailUrl = logoUploadResult;
-        // publicId not available in this case
+    if (thumbnailBuffer) {
+      const uploadResult = await uploadOnCloudinaryBuffer(thumbnailBuffer);
+      if (typeof uploadResult === 'string') {
+        thumbnailUrl = uploadResult;
       } else {
-        thumbnailUrl = logoUploadResult.secure_url || "";
-        thumbnailUrlPublicId = logoUploadResult.public_id || "";
+        thumbnailUrl = uploadResult.secure_url || "";
+        thumbnailUrlPublicId = uploadResult.public_id || "";
       }
     }
 
-    const newEvent = await Event.create({
-      title:title,
-      description:description,
-      thumbnailurl:thumbnailUrl,
-      thumbnailurlPublicId:thumbnailUrlPublicId,
-      isPublish:isPublish
-    })
+    const newEvent = new Event({
+      title,
+      description,
+      thumbnailurl: thumbnailUrl,
+      thumbnailUrlPublicId,
+      isPublish: isPublish === 'true' || isPublish === true, // Handle string/boolean
+      where,
+      seminarDate: new Date(seminarDate), // Parse ISO or dd-mm-yyyy format
+      timing
+    });
 
-     return res.status(201).json({
-      message:"Event added successfully",
-     })
+    await newEvent.save();
+
+    return res.status(201).json({
+      message: "Event added successfully",
+      event: newEvent
+    });
 
   } catch (error) {
-    console.log('error in add new events',error);
+    console.error('Error in /addNewEvent:', error);
     return res.status(500).json({
-      message:"Internal server error"
+      message: "Internal server error"
+    });
+  }
+});
+
+router.get('/event/:id',async(req,res)=>{
+  const eventId = req.params.id;
+  try {
+    const event = await Event.findById(eventId).populate({path:"registredStudent",select:'-password'});
+
+    if(!event){
+      return res.status(500).json({
+        message:"Internal server error"
+      })
+    }
+
+    return res.status(200).json({
+      event,
+      totlaNumberOfRegistraion:event.registredStudent.length
+    })
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message:'Internal server error'
+    })
+  }
+})
+
+router.patch('/event/:id',async(req,res)=>{
+  const eventId = req.params.id;
+  try {
+    const {isPublish} = req.body;
+    const event  = await Event.findById(eventId);
+    if(!event){
+      return res.status(404).json({
+        message:'Event does not exist'
+      })
+    }
+
+    if(event.isPublish === isPublish){
+      return res.status(201).json({
+        message:'Updated succefully'
+      })
+    }
+      event.isPublish = isPublish;
+      await event.save();
+
+      return res.status(201).json({
+        message:'Event update successfully'
+      })
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message:'Internal server error'
     })
   }
 })
