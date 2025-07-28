@@ -27,6 +27,8 @@ const courseSchema = new mongoose.Schema({
        { type:mongoose.Schema.Types.ObjectId,
         ref:'Mentor'}
     ]
+}, {
+  timestamps: true // Adds createdAt and updatedAt fields
 });
 
 const Course = mongoose.model("Course",courseSchema);

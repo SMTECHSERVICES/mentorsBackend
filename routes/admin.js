@@ -4,6 +4,10 @@ import adminProtectMiddleware from '../middleware/admin.js';
 import ExcelJS from 'exceljs'
 import Mentee from '../models/mentee.js';
 import Mentor from '../models/Mentor.js';
+import upload from '../middleware/multer.js'
+import uploadOnCloudinaryBuffer from '../utils/uploadImageOnCloudinary.js';
+import Event from '../models/event.js';
+
 const router = express.Router();
 
 
@@ -55,6 +59,10 @@ router.get('/getAllMentees',async(req,res)=>{
         })
     }
 });
+
+router.get('/getMentee-detail/:id',async(req,res)=>{
+  
+})
 
 router.get('/getAllMentors',async(req,res)=>{
     try {
@@ -218,6 +226,84 @@ router.get('/dashboardData',async(req,res)=>{
     } catch (error) {
         
     }
+})
+
+router.get('/events',async(req,res)=>{
+  const page = parseInt(req.query.page || 1);
+  const limit = parseInt(req.query.limit || 2);
+  const skip = (page - 1) * limit;
+  const category = (req.query.category || "all");
+
+
+
+  try {
+    const totalNumberOfEvents = await Event.countDocuments();
+    let events;
+    if(category==="all"){
+       events = await Event.find().skip(skip).limit(limit);
+    }else{
+        const isPublishValue = category.toLowerCase() === 'true';
+      events = await Event.find({ isPublish: isPublishValue }).skip(skip).limit(limit);
+    }
+
+    return res.status(200).json({
+      totalNumberOfEvents,
+      totalPage : Math.ceil(totalNumberOfEvents/limit),
+      currentPage:page,
+      events
+    })
+  } catch (error) {
+    console.log("Error in get event route",error);
+    return res.status(500).json({
+      message:'Internal server error'
+    })
+  }
+})
+
+router.post('/addNewEvent',upload.single("thumbnail"),async(req,res)=>{
+  const {title,description,isPublish} = req.body;
+  try {
+    if(!title || !description){
+      return res.status(404).json({
+        message:'Please give the title and description'
+      })
+    }
+     const thumbnailBuffer = req.file?.buffer;
+     // console.log(resumeBuffer)
+    let thumbnailUrl = "";
+    let thumbnailUrlPublicId = "";
+
+         if (thumbnailBuffer) {
+      const logoUploadResult = await uploadOnCloudinaryBuffer(thumbnailBuffer);
+      // Assuming uploadOnCloudinaryBuffer returns an object with url and public_id
+      // If it returns just URL, adjust accordingly
+      if (typeof logoUploadResult === 'string') {
+        thumbnailUrl = logoUploadResult;
+        // publicId not available in this case
+      } else {
+        thumbnailUrl = logoUploadResult.secure_url || "";
+        thumbnailUrlPublicId = logoUploadResult.public_id || "";
+      }
+    }
+
+    const newEvent = await Event.create({
+      title:title,
+      description:description,
+      thumbnailurl:thumbnailUrl,
+      thumbnailurlPublicId:thumbnailUrlPublicId,
+      isPublish:isPublish
+    })
+
+     return res.status(201).json({
+      message:"Event added successfully",
+     })
+
+  } catch (error) {
+    console.log('error in add new events',error);
+    return res.status(500).json({
+      message:"Internal server error"
+    })
+  }
 })
 
 export default router;

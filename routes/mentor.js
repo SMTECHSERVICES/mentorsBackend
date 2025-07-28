@@ -30,6 +30,14 @@ router.post('/register',upload.fields([
 
     //console.log(req.body)
 
+    const isAlreadyMentor = await Mentor.findOne({email:email});
+    if(isAlreadyMentor){
+      return res.status(400).json({
+        message:'This email is already registered'
+      })
+    }
+
+
  
 
 
@@ -182,6 +190,7 @@ router.post('/login',async(req,res)=>{
 
 
 router.use(protectMentorMiddleware);
+
 
 
 router.get("/dashboardData", async (req, res) => {

@@ -13,9 +13,8 @@ const mentorSchema = new mongoose.Schema({
   phoneNumber: {
     type: String,
     required: [true, 'Phone number is required'],
-    unique: true,
     trim: true
-  },
+  }, 
   email: {
     type: String,
     required: [true, 'Email address is required'],
@@ -51,7 +50,7 @@ const mentorSchema = new mongoose.Schema({
   },
   resume: {
     type: String, // URL to resume file
-    required: [true, 'Resume link is required'],
+    // required: [true, 'Resume link is required'],5959
     trim: true
   },
   resumePublicId:{

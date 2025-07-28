@@ -45,8 +45,6 @@ const menteeSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [8, 'Password must be at least 8 characters'],
-    
   },
   areaOfMentorshipInterest: {
     type: [String],
@@ -55,12 +53,16 @@ const menteeSchema = new mongoose.Schema({
   },
   resume: {
     type: String,
-    required: [true, 'Resume URL is required'],
+    // required: [true, 'Resume URL is required'],
     trim: true
   },
   resumePublicId:{
     type:String,
     select:false
+  },
+  description:{
+    type:String,
+    require:true
   },
   yourMentors:[
     {
